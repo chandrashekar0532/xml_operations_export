@@ -1,0 +1,2 @@
+xml_operations_dialog
+xml_operations_plugin

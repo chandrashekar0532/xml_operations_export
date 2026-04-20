@@ -1,0 +1,68 @@
+#% text_encoding = iso8859_1
+# ************************************************************ 
+#							       
+# (c) 2005-2012 General Electric Company. All Rights Reserved. 
+#							       
+# ************************************************************ 
+_package user
+_pragma(classify_level=debug, topic={application_development_examples})
+##
+## This is a simple plugin to activate a dialog box 
+## based on class model.
+##
+# Define the plugin class
+def_slotted_exemplar( :xml_operations_plugin,
+{},
+:plugin 
+)
+$
+# Create an action
+_pragma(classify_level=debug, topic={application_development_examples})
+_method xml_operations_plugin.init_actions()
+    ## Create the actions defined by the plugin
+    _self.add_action(sw_action.new( :trail_to_xml_operations,
+				    :engine, _self,
+				    :caption, "xml operations menu",
+				    :toolbar_control, :button_item,
+				    :image, {:activate, :ui_resource},
+				    :action_message, :xml_operations_menu|()|))
+	
+      
+_endmethod
+$
+
+xml_operations_plugin.def_property( :x_offset,
+			       :type, :integer, :default_value, 100,
+			       :description, "X offset used for dialog activation" )
+$
+#
+xml_operations_plugin.def_property( :y_offset,
+			       :type, :integer, :default_value,100,
+			       :description, "Y offset used for dialog activation" )
+
+$
+_pragma(classify_level=debug, topic={application_development_examples})
+_method xml_operations_plugin.xml_operations_menu()
+	## 
+	## 
+
+
+	name << :xml_operations_dialog
+	
+	_if (d << _self.get_dialog( name ) ) _is _unset
+	_then
+
+		d << xml_operations_dialog.new_dialog( _self.top_frame, _self )
+		_self.cache_dialog( name, d )	
+	_endif 
+
+	d.activate_relative_to(_self.message(:title_frame) , _self.top_frame,
+			    _self.x_offset,_self.y_offset)
+	
+ 
+	
+    >> d
+	
+_endmethod
+$
+

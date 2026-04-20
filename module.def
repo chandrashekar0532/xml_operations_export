@@ -1,0 +1,6 @@
+xml_operations_export	1
+
+description
+	Trail to xml operaion and Read the xml file and write into csv file stores in different files
+end
+

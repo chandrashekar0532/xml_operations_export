@@ -1,0 +1,340 @@
+#% text_encoding = iso8859_1
+# ************************************************************ 
+#							       
+# (c) 2005-2012 General Electric Company. All Rights Reserved. 
+#							       
+# ************************************************************ 
+_package user
+_pragma(classify_level=restricted, topic={apps_dev_course})
+##
+## This is a simple plugin to activate a dialog box 
+## based on class model.
+##
+# Define the plugin class
+def_slotted_exemplar(:xml_operations_dialog,
+{
+	{:plugin,_unset},
+	{:file_path1,_unset },
+	{:file_path2,_unset }
+},
+:model
+)
+$
+_pragma(classify_level=restricted, topic={apps_dev_course})
+_method xml_operations_dialog.new(plugin)
+	## 
+	## 
+	>> _clone.init(plugin)
+_endmethod
+$
+_pragma(classify_level=restricted, topic={apps_dev_course})
+_method xml_operations_dialog.init(plugin)
+	## 
+	## 
+	_super.init()
+	.plugin << plugin
+
+	>> _self 
+_endmethod
+$
+
+_pragma(classify_level=restricted, topic={apps_dev_course})
+_method xml_operations_dialog.build_gui(container)
+	## 
+	## 
+	
+		>> _self.activate_in(container)
+
+_endmethod
+$
+
+_pragma(classify_level=restricted, topic={apps_dev_course})
+_method xml_operations_dialog.activate_in(a_frame)
+	## 
+	##GUI
+	##
+	rc << rowcol.new(a_frame,_unset , 1,_unset)
+	rc.style << :top_level
+
+	lbl << label_item.new(rc,"XML Operations")
+          # Create a "button box"
+	
+        bbc << rowcol.new(rc, _unset , 4)
+    	bbc.style << :button_box
+    	bbc.col_alignment << :right
+        
+        .file_path1 << text_item.new(bbc,"Input file",:row,1,:col,1)
+	uf <<  button_item.new(bbc,"Upload a file",_self,:|select_file()|,:row,1,:col,2)
+	
+        .file_path2 << text_item.new(bbc,"Output file",:row,2,:col,1)
+	outf <<  button_item.new(bbc,"select path",_self,:|select_directory()|,:row,2,:col,2)
+
+	s << panel_separator.new(bbc, :col_alignment , :fill )
+	
+	trail_to_xml <<  button_item.new(rc,"Trail_to_xml_export",_self,:trail_to_xml|()|, :min_width, 75)
+
+	xml_to_csv <<  button_item.new(rc,"xml_to_csv_export",_self,:xml_to_csv_export|()|, :min_width, 75)
+
+           
+	_self.register_action_buttons( trail_to_xml, xml_to_csv )
+
+	>> rc
+	
+_endmethod
+$
+_pragma(classify_level=restricted, topic={apps_dev_course})
+_method xml_operations_dialog.set_file(val)
+	## 
+	## 
+	.file_path1.value << val
+
+_endmethod
+$
+_pragma(classify_level=restricted, topic={apps_dev_course})
+_method xml_operations_dialog.select_file()
+	##
+	## browse the select   file path 
+	##
+	# Select File path from Browse file button in "My Bill Items"
+	# (09-12-2005 Brad Sileo): created.
+	
+	fd << file_dialog.new(_self,:set_file|()|)
+	fd.operation <<  :open
+	fd.activate()
+
+ _endmethod
+	   
+$
+
+
+_pragma(classify_level=restricted, topic={apps_dev_course})
+_method xml_operations_dialog.set_directory(val)
+	## 
+	## 
+	.file_path2.value << val
+
+_endmethod
+$
+
+
+
+_pragma(classify_level=restricted, topic={apps_dev_course})
+_method xml_operations_dialog.select_directory()
+	##
+	## browse the select   file path 
+	##
+	# Select File path from Browse file button in "My Bill Items"
+	# (09-12-2005 Brad Sileo): created.
+	
+	fd << file_dialog.new(_self,:set_directory|()|)
+	fd.operation <<  :select_directory
+	fd.activate()
+
+_endmethod
+$
+
+
+_pragma(classify_level=restricted, topic={apps_dev_course})
+_method xml_operations_dialog.trail_to_xml()
+	## Goto selected objects based on the input file list
+	##
+
+	 an_app << .plugin.application
+	 a_map << an_app.plugin(:maps).current_map
+ 	 ve << gis_program_manager.databases[:electricity]
+	 a_tr << a_map.trail
+ 	 pg << a_tr.as_pseudo_geometry
+	 xmlData << hash_table.new()
+	 xmlData[:dataset] << property_list.new()
+	 xmlData[:dataset][:electric] <<  hash_table.new()
+	 _if a_tr.empty?
+	 _then
+		    .plugin.show_message(_self.message(:tr_closed))
+	 _endif
+	 ctr << 1
+	 _dynamic !print_float_precision! << 20
+	 sc << ve.geometry_scanner(:general) 
+	  _protect
+	
+	          
+	   
+	    sc.start_scan(pg.bounds)
+		  
+		  _loop
+			  a_geom << sc.get()
+			 _if(a_geom _is _unset)
+			  _then
+				  _leave 
+			  _endif
+			  tname << a_geom.rwo.source_table_name
+	             
+			
+			 _if a_geom.spatial_relation_with(pg) = :within
+			 _then
+			     _if xmlData[:dataset][:electric][tname.as_symbol()] _is _unset 
+			     _then
+				  xmlData[:dataset][:electric][tname.as_symbol()] << hash_table.new()
+
+				  
+			      _endif
+			              data << xmlData[:dataset][:electric][tname]
+				      val << data.size+1
+				      write(val)
+				      data[val] << property_list.new()
+				      a_rec << a_geom.rwo
+			        _for a_field _over a_rec.visible_non_geometry_field_names.fast_elements()
+			        _loop
+					data[val][a_field] << a_rec.perform(a_field)	  
+			        _endloop
+		
+				_for a_field _over a_rec.visible_geometry_fields.fast_elements()
+				_loop
+				        cg << a_rec.perform(a_field.name)
+				   _if cg _isnt _unset 
+				   _then
+					   data[val][a_field.name] << cg.sectors	   
+				   _endif
+			           
+				_endloop
+			 _endif
+			 ctr +<< 1
+		  _endloop
+	        
+		.plugin.show_message(_self.message(:exported))
+		 serial_xml_thing.write_thing_to( xmlData,"Z:\Magik_Training_June_22\Temp\Chandrashekar\xml_write.xml")
+		
+		 fname << "Z:\Magik_Training_June_22\Temp\Chandrashekar\xml_write.xml"
+		_return xmlData
+		
+	_protection
+		sc.return_to_scanner_pool()
+	_endprotect
+ 
+	
+_endmethod
+$
+_pragma(classify_level=restricted, topic={apps_dev_course})
+_method xml_operations_dialog.get_coords_string(a_rval)
+	##
+	## To get the coordinates for sector rope
+	##
+	         s << internal_text_output_stream.new()
+		 coord_str << ""
+					
+		_dynamic !print_float_precision! << 20
+		a_ctr << a_rval.size
+		_for a_sec _over a_rval.sectors.fast_elements()
+		_loop
+
+		# a_sec is a sector in a_rval sector rope
+		  a_str << a_sec.size
+					
+		    _for a_coord _over a_sec.fast_elements()
+		    _loop
+		   # a_coord are coordinates of a_sec
+							
+		     s.write( coord_str , a_coord.x , "#" , a_coord.y)
+
+			# check if sector ends ? yes : add ||
+							
+			  _if a_str > 1
+			  _then
+			       s.write(coord_str , "||")
+						
+			_endif
+				a_str -<< 1
+						
+			_endloop
+
+					
+								
+			_if (a_rval.size > 1 _and a_ctr > 2)
+			_then
+						
+			   s.write(coord_str , "@")
+			_endif
+			    a_ctr -<< 1
+			_endloop
+
+		>> s.string 
+	  
+_endmethod
+$
+_pragma(classify_level=restricted, topic={apps_dev_course})
+_method xml_operations_dialog.xml_to_csv_export()
+	##
+	## 
+	## 
+
+	#fname << "Z:\Magik_Training_June_22\Temp\Chandrashekar\xml_write.xml"
+	fname << .file_path1.value
+				xmlread_data << serial_xml_thing.read_thing_from(fname)
+				_dynamic !print_float_precision! << 20
+				ctr << 1
+				_for a_dtset  _over xmlread_data.fast_elements()
+				_loop
+				
+					      
+					#a_table is a data_set (electric)
+					_if(a_dtset.size = 0)
+					_then
+						_continue
+					_endif
+					
+					_for a_ht _over a_dtset.fast_elements()
+					_loop
+					
+						ctr << 1
+						
+						_for a_key,feat_ht  _over a_ht.fast_keys_and_elements()
+						_loop
+							
+							_protect
+								
+								#fname_out <<  "Z:\Magik_Training_June_22\Temp\Chandrashekar\" + a_key.write_string + ".csv"
+								fname_out << .file_path2.value  +  a_key.write_string + ".csv"
+								data_file << external_text_output_stream.new(fname_out)
+
+								key_names << feat_ht.an_element().keys
+								
+							
+								_for key_name _over key_names.fast_elements() 
+								_loop
+									data_file.write(key_name , ",")
+								 
+								_endloop
+								data_file.newline()
+							
+								_for a_rec  _over feat_ht.fast_elements()
+								_loop
+									_for a_rkey , a_rval _over a_rec.fast_keys_and_elements()
+									_loop
+										_if a_rval.class_name = :sector_rope
+										_then
+										    	
+										     a_str << _self.get_coords_string(a_rval)
+										     data_file.write(a_str ,",")
+										_else
+											
+										
+											data_file.write(a_rval.write_string, ",")
+										_endif
+									_endloop
+									
+									data_file.newline()
+									
+									
+								_endloop
+							
+							_protection
+									data_file.close()
+		
+						        _endprotect
+
+							
+						_endloop	
+					_endloop			
+				_endloop
+			 .plugin.show_message(_self.message(:created))
+_endmethod
+$
